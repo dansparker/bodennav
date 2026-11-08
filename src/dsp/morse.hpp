@@ -28,9 +28,12 @@ private:
     void finish_letter();
     bool finish_word();
 
+    static constexpr int kDebounce = 2;
+
     double block_s_;
     bool tone_{false};
     int run_{0};
+    int pending_{0};
     double dot_s_{0.12};
     bool letter_done_{true};
     bool word_done_{true};
@@ -58,6 +61,7 @@ public:
         double min_depth{0.02};       // modulation depth needed for "tone on"
         double noise_ratio{3.0};      // ... and this many times the reference bins
         std::vector<double> reference_hz{1650.0, 2350.0};
+        double peak_ratio{0.35};      // ... and this part of the recent peak depth (time constant 5 s)
     };
     explicit IdentDetector(const Options& options);
     // `valid` = false: the sample is not used (e.g. switching slot of the ADF antenna), time still advances.
@@ -80,6 +84,8 @@ private:
     MorseDecoder morse_;
     bool on_{false};
     double depth_{0.0};
+    double peak_{0.0};
+    double peak_decay_;
 };
 
 }  // namespace bodennav::dsp

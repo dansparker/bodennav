@@ -52,6 +52,7 @@ MorseDecoder::MorseDecoder(double block_s) : block_s_(block_s) {}
 void MorseDecoder::reset() {
     tone_ = false;
     run_ = 0;
+    pending_ = 0;
     dot_s_ = 0.12;
     letter_done_ = true;
     word_done_ = true;
@@ -64,14 +65,21 @@ void MorseDecoder::reset() {
 }
 
 bool MorseDecoder::feed(bool tone) {
-    bool confirmed = false;
+    // Debounce: a change counts only after kDebounce equal blocks, so single noise
+    // blocks neither split a dash nor interrupt the pause between two identifiers.
     if (tone == tone_) {
+        pending_ = 0;
         ++run_;
+    } else if (++pending_ < kDebounce) {
+        ++run_;  // not confirmed yet: still counted to the current state
     } else {
-        if (tone_) end_mark(run_ * block_s_);
+        const int moved = pending_ - 1;  // blocks already counted to the old state
+        if (tone_) end_mark((run_ - moved) * block_s_);
         tone_ = tone;
-        run_ = 1;
+        run_ = pending_;
+        pending_ = 0;
     }
+    bool confirmed = false;
     if (!tone_) {
         const double space = run_ * block_s_;
         if (!letter_done_ && space > 2.0 * dot_s_) finish_letter();
@@ -131,7 +139,8 @@ bool MorseDecoder::finish_word() {
 IdentDetector::IdentDetector(const Options& options)
     : options_(options),
       block_samples_(std::max<std::size_t>(1, static_cast<std::size_t>(std::lround(options.block_s * options.rate_hz)))),
-      morse_(options.block_s) {
+      morse_(options.block_s),
+      peak_decay_(std::exp(-options.block_s / 5.0)) {
     for (const double f : options_.tones_hz) tones_.emplace_back(f, options_.rate_hz);
     for (const double f : options_.reference_hz) references_.emplace_back(f, options_.rate_hz);
 }
@@ -144,6 +153,7 @@ void IdentDetector::reset() {
     used_ = 0;
     on_ = false;
     depth_ = 0.0;
+    peak_ = 0.0;
 }
 
 void IdentDetector::add(double modulation, bool valid) {
@@ -171,7 +181,10 @@ void IdentDetector::evaluate() {
         return;
     }
     depth_ = depth;
-    const double threshold = std::max(options_.min_depth, options_.noise_ratio * reference);
+    // the keyed tone sets its own scale: noise far below the received tone depth is ignored
+    peak_ = std::max(depth, peak_ * peak_decay_);
+    const double threshold =
+        std::max({options_.min_depth, options_.noise_ratio * reference, options_.peak_ratio * peak_});
     // hysteresis: switching off needs the tone to drop to 60 % of the threshold
     on_ = on_ ? depth > 0.6 * threshold : depth > threshold;
     morse_.feed(on_);
