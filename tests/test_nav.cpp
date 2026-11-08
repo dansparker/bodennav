@@ -247,9 +247,9 @@ TEST(adf_without_switching_has_no_bearing) {
     }
     CHECK(!plain.output().bearing_valid);
     CHECK(plain.ident().ident() == "WG");
-    if (plain.ident().ident() != "WG") std::printf("  tone: %s
-  depth %.3f
-", timeline.c_str(), plain.ident().tone_depth());
+    if (plain.ident().ident() != "WG") {
+        std::printf("  tone: %s\n  depth %.3f\n", timeline.c_str(), plain.ident().tone_depth());
+    }
 }
 
 // --- end to end: SDR stream with offset and 8-bit quantisation -------------------------
