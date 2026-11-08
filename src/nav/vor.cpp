@@ -44,7 +44,7 @@ void VorDecoder::reset() {
     var_tone_.reset();
     ref_tone_.reset();
     previous_ = {1.0f, 0.0f};
-    noise_.take_cn0_dbhz();
+    (void)noise_.take_cn0_dbhz();  // drop the partial measurement
     ident_.reset();
     window_.clear();
     cn0_.clear();

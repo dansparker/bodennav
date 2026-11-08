@@ -20,7 +20,7 @@ TEST(decimator_output_count_and_level) {
     std::vector<float> out;
     fir.process(std::span<const float>(in.data(), 500), out);
     fir.process(std::span<const float>(in.data() + 500, 500), out);
-    CHECK(out.size() == (1000 - 31) / 4 + 1);
+    CHECK(out.size() == 250);  // history pre-filled with zeros: an output every 4th input from the first
     CHECK_NEAR(out.back(), 1.0, 1e-5);
 }
 

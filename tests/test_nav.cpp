@@ -129,9 +129,9 @@ TEST(localizer_deviation_sign_and_scale) {
         sim::IlsParams p;
         p.ddm = k.ddm;
         nav::IlsDecoder decoder(ils_options(nav::IlsKind::Localizer));
-        decoder.process(sim::ils(common(1.0), p));
+        decoder.process(sim::ils(common(1.0, 80.0), p));
         CHECK(decoder.output().valid);
-        CHECK_NEAR(decoder.output().deviation_deg, k.deg, 0.02);
+        CHECK_NEAR(decoder.output().deviation_deg, k.deg, 0.01);
         CHECK_NEAR(decoder.output().sdm, 0.40, 0.01);
     }
 }
@@ -143,9 +143,9 @@ TEST(glideslope_deviation_sign_and_scale) {
         p.ddm = ddm;
         p.sdm = 0.80;
         nav::IlsDecoder decoder(ils_options(nav::IlsKind::Glideslope));
-        decoder.process(sim::ils(common(1.0), p));
+        decoder.process(sim::ils(common(1.0, 80.0), p));
         CHECK(decoder.output().valid);
-        CHECK_NEAR(decoder.output().deviation_deg, ddm / 0.0875 * 0.35, 0.01);
+        CHECK_NEAR(decoder.output().deviation_deg, ddm / 0.0875 * 0.35, 0.005);
     }
 }
 
@@ -239,9 +239,17 @@ TEST(adf_without_switching_has_no_bearing) {
 
     o.antenna = nav::AdfAntenna::None;
     nav::AdfDecoder plain(o);
-    plain.process(sim::ndb(common(12.0, 60.0), p));
+    const auto samples = sim::ndb(common(12.0, 60.0), p);
+    std::string timeline;
+    for (std::size_t i = 0; i + 320 <= samples.size(); i += 320) {
+        plain.process(std::span<const dsp::cf>(samples.data() + i, 320));
+        timeline.push_back(plain.ident().tone_on() ? '#' : '.');
+    }
     CHECK(!plain.output().bearing_valid);
     CHECK(plain.ident().ident() == "WG");
+    if (plain.ident().ident() != "WG") std::printf("  tone: %s
+  depth %.3f
+", timeline.c_str(), plain.ident().tone_depth());
 }
 
 // --- end to end: SDR stream with offset and 8-bit quantisation -------------------------

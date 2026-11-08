@@ -35,7 +35,7 @@ void IlsDecoder::reset() {
     block_.clear();
     tone90_.reset();
     tone150_.reset();
-    noise_.take_cn0_dbhz();
+    (void)noise_.take_cn0_dbhz();  // drop the partial measurement
     ident_.reset();
     window_.clear();
     cn0_.clear();

@@ -22,7 +22,7 @@ MarkerDecoder::MarkerDecoder(const Options& options)
 void MarkerDecoder::reset() {
     block_.clear();
     for (auto& t : tones_) t.reset();
-    noise_.take_cn0_dbhz();
+    (void)noise_.take_cn0_dbhz();  // drop the partial measurement
     bits_ = 0;
     cn0_dbhz_ = 0.0;
     updates_ = 0;
