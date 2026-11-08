@@ -32,11 +32,11 @@ Anfrage auf ID 128 (Node-Service-Kanal 0, Service 0) an Node 0 (alle) oder 40 �
 ID 129: UCHAR4 (Hardware-Revision, Software-Revision, 0, 0), Message-Code der Anfrage. OpenEFIS
 listet den Empfänger dann unter MENU.
 
-## Vorschlag: Frequenzwahl vom EFIS
+## Frequenzwahl vom EFIS
 
-ADR 0007 lässt die Frequenzwahl am Empfänger, weil CANaerospace keine Stellbefehle hat. Ein
-SDR-Empfänger hat aber keine Bedienelemente. Vorschlag (frei verfügbarer Bereich 1500–1799,
-in OpenEFIS noch **nicht** umgesetzt):
+CANaerospace hat keine Stellbefehle, und ein SDR-Empfänger hat keine Bedienelemente. Dafür gibt
+es zwei Kennungen aus dem frei verfügbaren Bereich 1500–1799, festgelegt in OpenEFIS ADR 0007
+(umgesetzt in [open-efis#65](https://github.com/dansparker/open-efis/pull/65)):
 
 | ID | Hex | Parameter | Typ | Einheit | Sender |
 |---|---|---|---|---|---|
@@ -45,10 +45,11 @@ in OpenEFIS noch **nicht** umgesetzt):
 
 * Der Empfänger nimmt sie nur von `[can] display_node_id` an (0 = jeder andere Knoten), rundet
   auf das Raster, verwirft ungültige Werte und bestätigt über 1104/1108.
-* Das EFIS sendet eine Anfrage beim Umschalten (Standby ↔ aktiv), nicht zyklisch.
+* Das EFIS sendet einmal pro Bedienung, nicht zyklisch, und nur mit `can.own_node_id`:
+  * NAV1: Taste **SWAP** im Feld NAV1 SBY (Standby → Empfänger, alte aktive Frequenz → Standby);
+  * ADF: langes Drücken auf ein Bearing-Feld mit Quelle ADF, dann kHz eintippen oder ± 0,5 kHz.
 * Die zuletzt gewählten Frequenzen speichert der Empfänger (`[general] state_file`).
-
-In OpenEFIS wäre das ein kleiner Zusatz zu ADR 0007 (Senden bei „Swap“ im NAV1-Feld und am ADF).
+* `[can] display_node_id` muss gleich `can.own_node_id` von OpenEFIS sein (oder 0).
 
 ## Prüfen am Bus
 

@@ -4,7 +4,7 @@
 
 Ein NAV-Empfänger (VOR/ILS mit Gleitpfad und Markern) und ein ADF für OpenEFIS, aufgebaut aus
 handelsüblichen SDR-Sticks. Die Frequenzwahl kann am Empfänger (Konfiguration/Zustandsdatei)
-oder – vorgeschlagen – vom EFIS über CAN erfolgen (siehe [canaerospace.md](canaerospace.md)).
+oder vom EFIS über CAN erfolgen (OpenEFIS: Taste SWAP bzw. Feld ADF) (siehe [canaerospace.md](canaerospace.md)).
 DME, NAV2 und COM sind nicht Teil des Projekts.
 
 ## Warum vier SDRs
