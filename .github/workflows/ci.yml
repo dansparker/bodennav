@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc
+            cxx: g++
+            flags: ""
+          - name: clang-sanitizers
+            cxx: clang++
+            flags: "-DBODENNAV_SANITIZE=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo"
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build clang libsoapysdr-dev
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DBODENNAV_WERROR=ON ${{ matrix.flags }}
+      - name: Build
+        run: cmake --build build
+      - name: Unit and end-to-end tests
+        run: ./build/bodennav_tests
+      - name: Replay smoke test (simulated VOR file -> candump)
+        run: |
+          cat > /tmp/replay.conf <<'EOF'
+          [nav]
+          source = file
+          path = /tmp/vor.cu8
+          format = cu8
+          realtime = true
+          loop = false
+          frequency_mhz = 113.10
+          EOF
+          ./build/bodennav-siggen vor -o /tmp/vor.cu8 --radial 123 --seconds 4
+          ./build/bodennav -c /tmp/replay.conf --candump --interface vcan0 --seconds 30 | tee /tmp/frames.log
+          grep -q " 466#" /tmp/frames.log   # 1126 VOR radial was sent
+          grep -q " 450#" /tmp/frames.log   # 1104 NAV frequency
+
+  arm64:
+    # Raspberry Pi target: build only
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libsoapysdr-dev
+      - name: Build and test
+        run: |
+          cmake -S . -B build -G Ninja
+          cmake --build build
+          ./build/bodennav_tests

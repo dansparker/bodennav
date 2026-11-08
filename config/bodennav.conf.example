@@ -1,0 +1,65 @@
+# bodennav configuration (copy to /etc/bodennav.conf)
+#
+# Every receiver section is optional; leave a section out (or source = none)
+# when that SDR is not installed. Give each RTL-SDR its own serial number
+# (rtl_eeprom -d 0 -s NAV00001) so the dongles cannot be swapped by accident.
+
+[can]
+interface = can0
+node_id = 40              # CANaerospace node ID of the receiver
+display_node_id = 1       # accept tuning requests (1530/1531) only from the EFIS (can.own_node_id there)
+
+[general]
+state_file = /var/lib/bodennav/state   # last selected frequencies
+
+[nav]                     # VOR / localizer 108.00-117.95 MHz
+source = soapy
+args = driver=rtlsdr,serial=NAV00001
+sample_rate = 256000
+gain = -1                 # -1 = automatic gain
+ppm = 0                   # frequency correction (RTL-SDR Blog V4: TCXO, 0 is fine)
+offset_hz = 60000         # channel 60 kHz beside the tuned centre (away from the DC spike)
+min_cn0_dbhz = 50
+frequency_mhz = 113.10    # start frequency when no state file exists
+vor_offset_deg = 0        # VOR calibration (check against a VOT or known radial)
+
+[gs]                      # glide path 329.15-335.00 MHz, tuned automatically from the localizer
+source = soapy
+args = driver=rtlsdr,serial=GS000001
+sample_rate = 256000
+gain = -1
+
+[marker]                  # 75 MHz marker beacons
+source = soapy
+args = driver=rtlsdr,serial=MKR00001
+sample_rate = 256000
+gain = 30
+min_cn0_dbhz = 45         # raise for LO sensitivity
+frequency_mhz = 75.0
+
+[adf]                     # NDB 190-1750 kHz
+source = soapy
+args = driver=rtlsdr,serial=ADF00001
+sample_rate = 256000
+gain = -1
+offset_hz = 20000
+frequency_khz = 339.0
+antenna = switched        # switched crossed-loop antenna (docs/adf-antenne.md); none = ident only
+slot_ms = 10              # slot length of the antenna unit
+guard_ms = 1.5
+loop_phase_deg = 90       # loop vs sense phase, determined during calibration
+track_loop_phase = true
+bearing_offset_deg = 0    # installation calibration (ground run with a known NDB)
+invert_fore_aft = false
+invert_lateral = false
+min_snr_db = 10
+
+# Replay of an IQ file instead of an SDR (tests, demos without hardware):
+# [nav]
+# source = file
+# path = vor.cu8          # bodennav-siggen vor -o vor.cu8 --radial 123 --ident ABC
+# format = cu8            # cu8 (rtl_sdr), cs16 or cf32
+# sample_rate = 256000
+# realtime = true
+# loop = true
+# frequency_mhz = 113.10
